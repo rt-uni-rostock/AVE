@@ -11,6 +11,7 @@ The AVE Toolbox is based on the standard MATLAB/Simulink libraries.
 ## How To Use
 To use the AVE toolbox, add the `AVE.prj` project file as reference project to your own simulink project.
 This will add the `library` and `packages` directories to your project path automatically.
+For examples, take a look to the [examples](examples/) directory.
 
 
 ## Design Philosophy
