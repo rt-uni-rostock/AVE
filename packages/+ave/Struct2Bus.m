@@ -24,6 +24,7 @@ function listOfBusNames = Struct2Bus(s, busName, reservedNames)
     % 20230329    Robert Damerius        Limit length of bus names to maximum MATLAB identifier length (namelengthmax).
     % 20230607    Robert Damerius        Renaming 'logical' datatypes to 'boolean' to support boolean data types for use in Simulink.
     % 20230623    Robert Damerius        Remove duplicated assignment of bus element data type.
+    % 20241122    Robert Damerius        Add support for enumeration data types.
     % 
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if(nargin < 3)
@@ -85,6 +86,10 @@ function [reservedNames,assignedBusNames] = Struct2BusRecursive(s, busName, rese
             [reservedNames,newBusNames] = Struct2BusRecursive(s.(name), nestedBusName, reservedNames, rootName);
             assignedBusNames = [assignedBusNames; newBusNames];
             continue;
+
+        % If enumeration type, add prefix 'Enum: '
+        elseif(isenum(s.(name)))
+            dataType = ['Enum: ' dataType];
 
         % Rename 'logical' to 'boolean'
         elseif(strcmp('logical',char(dataType)))
