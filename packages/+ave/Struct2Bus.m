@@ -25,6 +25,7 @@ function listOfBusNames = Struct2Bus(s, busName, reservedNames)
     % 20230607    Robert Damerius        Renaming 'logical' datatypes to 'boolean' to support boolean data types for use in Simulink.
     % 20230623    Robert Damerius        Remove duplicated assignment of bus element data type.
     % 20241122    Robert Damerius        Add support for enumeration data types.
+    % 20250327    Robert Damerius        Add support for multi-dimensional busses.
     % 
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if(nargin < 3)
@@ -83,7 +84,7 @@ function [reservedNames,assignedBusNames] = Struct2BusRecursive(s, busName, rese
             bus.Elements(i).Description = '';
 
             % Run recursive function to convert that nested bus
-            [reservedNames,newBusNames] = Struct2BusRecursive(s.(name), nestedBusName, reservedNames, rootName);
+            [reservedNames,newBusNames] = Struct2BusRecursive(s.(name)(1), nestedBusName, reservedNames, rootName);
             assignedBusNames = [assignedBusNames; newBusNames];
             continue;
 
@@ -127,7 +128,7 @@ function reservedNames = GetReservedNamesRecursive(s)
         name = strFields{i};
         dataType = class(s.(name));
         if(strcmp('struct',char(dataType)))
-            nestedReservedNames = GetReservedNamesRecursive(s.(name));
+            nestedReservedNames = GetReservedNamesRecursive(s.(name)(1));
             reservedNames = [reservedNames, {name}, nestedReservedNames];
         else
             reservedNames = [reservedNames, {name}];
