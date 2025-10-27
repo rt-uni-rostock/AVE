@@ -19,14 +19,35 @@ function convexPolygons = ConvexPolyshapePartitioning(polygon)
     % Version     Author                 Changes
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     % 20221223    Robert Damerius        Initial release.
+    % 20251027    Robert Damerius        Process regions separately to increase performance. Check regions and holes when
+    %                                    merging two triangles.
     % 
     % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     assert(isa(polygon, "polyshape"), "Input ""polygon"" must be of type polyshape!");
-    assert(1 == numel(polygon), "Input ""polygon"" must contain only one polyshape!");
+    assert(isscalar(polygon), "Input ""polygon"" must contain only one polyshape!");
 
     % Default output
     convexPolygons = polyshape.empty();
-    if(isempty(polygon.Vertices) || (polygon.area() <= 100*eps))
+
+    % Process region by region
+    regions = polygon.regions();
+    for i = 1:numel(regions)
+        result = RegionPartitioning(regions(i));
+        if(isempty(convexPolygons))
+            convexPolygons = result;
+        else
+            convexPolygons = [convexPolygons, result];
+        end
+    end
+end
+
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+% Private Helper Functions
+% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function convexPolygons = RegionPartitioning(polygon)
+    convexPolygons = polyshape.empty();
+    if(isempty(polygon.Vertices) || (polygon.area() <= eps))
         return;
     end
 
@@ -54,10 +75,6 @@ function convexPolygons = ConvexPolyshapePartitioning(polygon)
     end
 end
 
-
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Private Helper Functions
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 function triangles = Triangulate(polygon)
     DT = triangulation(polygon);
     triangles = cell.empty();
@@ -84,5 +101,5 @@ function success = Fusable(convexPolygon1, convexPolygon2)
     if(numel(i) < 3), return; end
     convexHullPolygon = polyshape(vertices(i,:));
     unionPolygon = union(convexPolygon1, convexPolygon2);
-    success = (abs(convexHullPolygon.area() - unionPolygon.area()) <= 100*eps);
+    success = (1 == unionPolygon.NumRegions) && (0 == unionPolygon.NumHoles) && (abs(convexHullPolygon.area() - unionPolygon.area()) <= eps);
 end
