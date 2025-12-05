@@ -198,7 +198,7 @@ classdef ConvexPolygon < handle
                 minSquaredDistance = min(minSquaredDistance, aa + (bb*lambda - 2.0 * ab)*lambda);
             end
         end
-        function boundaryPoint = ClosestBoundaryPoint(this, point)
+        function [boundaryPoint, edge] = ClosestBoundaryPoint(this, point)
             % Calculate the closest boundary point, e.g. a point on an edge, to a given query point.
             % IMPORTANT: IT IS NOT CHECKED WHETHER THIS POLYGON IS VALID OR NOT!
             % 
@@ -207,11 +207,14 @@ classdef ConvexPolygon < handle
             % 
             % RETURN
             % boundaryPoint ... The bounary point that is closest to the query point or a non-finite value, if this convex polygon contains less than 3 vertices.
+            % edge ... 3-dimensional edge parameter vector that indicates the edge containing the boundary point. The edge is given as [a;b;c], where [a;b] is a
+            %          normal vector pointing outside the polygon and the implicit line equation of that edge is f(x,y) = a*x + b*y + c = 0.
             arguments (Input)
                 this ave.geometry.ConvexPolygon
                 point (2,1) double
             end
             boundaryPoint = nan(2,1);
+            edge = nan(3,1);
             if(this.num_vertices < int32(3))
                 return;
             end
@@ -226,6 +229,7 @@ classdef ConvexPolygon < handle
             minDistance = sqrt(aa + (bb*lambda - 2.0 * ab)*lambda);
             boundaryPoint(1) = this.vertices(1, this.num_vertices) + lambda * bx;
             boundaryPoint(2) = this.vertices(2, this.num_vertices) + lambda * by;
+            edge = this.edges(:, this.num_vertices);
             for k = int32(1):(this.num_vertices - int32(1))
                 ax = point(1) - this.vertices(1,k);
                 ay = point(2) - this.vertices(2,k);
@@ -240,6 +244,54 @@ classdef ConvexPolygon < handle
                     minDistance = d;
                     boundaryPoint(1) = this.vertices(1,k) + lambda * bx;
                     boundaryPoint(2) = this.vertices(2,k) + lambda * by;
+                    edge = this.edges(:, k);
+                end
+            end
+        end
+        function lambda = LineEdgeIntersection(this, pointA, pointB)
+            % Calculate the intersection of edges with a line from pointA to pointB and select the intersection that is closest to pointA.
+            % IMPORTANT: IT IS NOT CHECKED WHETHER THIS POLYGON IS VALID OR NOT!
+            % 
+            % PARAMETER
+            % pointA ... Indicates the start point of the line.
+            % pointB ... Indicates the end point of the line.
+            % 
+            % RETURN
+            % lambda ... The intersection ratio where the line from pointA to pointB intersects with the closest edge of this polygon.
+            %            This value can be any real number (positive or negative) or a non-finite value if no intersection exists.
+            %            The intersection point is calculated by:
+            %               pointA + lambda*(pointB - pointA)
+            arguments (Input)
+                this ave.geometry.ConvexPolygon
+                pointA (2,1) double
+                pointB (2,1) double
+            end
+
+            % edge parameters for line from A to B
+            nx = pointB(2) - pointA(2);
+            ny = pointA(1) - pointB(1);
+            len = sqrt(nx*nx + ny*ny);
+            len = 1.0 / (len + double(len == 0.0));
+            line_a = len * nx;
+            line_b = len * ny;
+            line_c = -line_a*pointA(1) - line_b*pointA(2);
+
+            % iterate over all edges
+            lambda = NaN;
+            for i = int32(0):(this.num_vertices - int32(1))
+                % check if intersection exists and lies between both vertices of the edge
+                v1 = this.vertices(:, i + int32(1));
+                v2 = this.vertices(:, mod(i + int32(1), this.num_vertices) + int32(1));
+                s = (line_a*v1(1) + line_b*v1(2) + line_c) / (line_a*(v1(1) - v2(1)) + line_b*(v1(2) - v2(2)));
+                if(isfinite(s) && (s >= 0.0) && (s <= 1.0))
+                    % calculate lambda ratio and check if its absolute value has been decreased
+                    a = this.edges(1, i + int32(1));
+                    b = this.edges(2, i + int32(1));
+                    c = this.edges(3, i + int32(1));
+                    lambda_i = (a*pointA(1) + b*pointA(2) + c) / (a*(pointA(1) - pointB(1)) + b*(pointA(2) - pointB(2)));
+                    if(~isfinite(lambda) || (isfinite(lambda_i) && (abs(lambda_i) < abs(lambda))))
+                        lambda = lambda_i;
+                    end
                 end
             end
         end
@@ -430,7 +482,7 @@ classdef ConvexPolygon < handle
     properties(Access = protected)
         num_vertices (1,1) int32
         vertices (2,:) double
-        edges (3,:) double
+        edges (3,:) double % edge(:,i) goes from vertices(:,i) to vertices(:,i+1)
         aabb_lowerBound (2,1) double
         aabb_upperBound (2,1) double
     end
