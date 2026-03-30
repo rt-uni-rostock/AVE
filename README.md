@@ -5,7 +5,7 @@ This toolbox contains MATLAB packages and Simulink libraries that are largely un
 The AVE Toolbox is based on the standard MATLAB/Simulink libraries.
 
 > **MATLAB Version**\
-> R2024a
+> R2025b
 
 
 ## How To Use

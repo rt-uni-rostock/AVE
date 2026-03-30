@@ -1,10 +1,14 @@
-function [N, E, D] = LLA2NED(lat, lon, alt, originLat, originLon, originAlt)
+function varargout = LLA2NED(varargin)
     %ave.LLA2NED Convert LLA coordinates (WGS84) to local NED frame coordinates.
     % This implementation uses the algorithm proposed by
     %     S. P. Drake
     %     Converting GPS Coordinates to Navigation Coordinates
     %     Surveillance Systems Division, Electronics and Surveillance Research Laboratory, DSTO-TN-0432
     %     April, 2002
+    % 
+    % This function can be called in two different ways, either scalar-like or column-vector-like:
+    %     [N, E, D] = ave.LLA2NED(lat, lon, alt, originLat, originLon, originAlt);
+    %     NED = ave.LLA2NED(LLA, originLLA);
     % 
     % PARAMETERS
     % lat ... Latitude (rad) of position that should be converted to NED.
@@ -18,15 +22,33 @@ function [N, E, D] = LLA2NED(lat, lon, alt, originLat, originLon, originAlt)
     % N ... North value of the NED position (m).
     % E ... East value of the NED position (m).
     % D ... Down value of the NED position (m).
-    % 
-    % REVISION HISTORY
-    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    % Version     Author                 Changes
-    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    % 20201028    Robert Damerius        Initial release.
-    % 20240528    Robert Damerius        Add support for multi-dimensional inputs (lat, lon, alt).
-    % 
-    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    assert(2 == nargin || 6 == nargin);
+    if(2 == nargin)
+        lat = varargin{1}(1,:);
+        lon = varargin{1}(2,:);
+        alt = varargin{1}(3,:);
+        originLat = varargin{2}(1,:);
+        originLon = varargin{2}(2,:);
+        originAlt = varargin{2}(3,:);
+    elseif(6 == nargin)
+        lat = varargin{1};
+        lon = varargin{2};
+        alt = varargin{3};
+        originLat = varargin{4};
+        originLon = varargin{5};
+        originAlt = varargin{6};
+    end
+    [N, E, D] = LLA2NED_implementation(lat, lon, alt, originLat, originLon, originAlt);
+    if(2 == nargin)
+        varargout{1} = [N; E; D];
+    elseif(6 == nargin)
+        varargout{1} = N;
+        varargout{2} = E;
+        varargout{3} = D;
+    end
+end
+
+function [N, E, D] = LLA2NED_implementation(lat, lon, alt, originLat, originLon, originAlt)
     assert(isequal(size(lat),size(lon)) && isequal(size(lat),size(alt)), 'Inputs lat, lon, alt must have the same size!');
     assert(isscalar(originLat), 'Input originLat must be a scalar value!');
     assert(isscalar(originLon), 'Input originLon must be a scalar value!');

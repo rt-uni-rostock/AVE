@@ -1,5 +1,9 @@
-function [lat, lon, alt] = NED2LLA(N, E, D, originLat, originLon, originAlt)
+function varargout = NED2LLA(varargin)
     %ave.NED2LLA Convert local NED frame coordinates to LLA coordinates (WGS84).
+    % 
+    % This function can be called in two different ways, either scalar-like or column-vector-like:
+    %     [lat, lon, alt] = ave.NED2LLA(N, E, D, originLat, originLon, originAlt);
+    %     LLA = ave.NED2LLA(NED, originLLA);
     % 
     % PARAMETERS
     % N         ... North value of the NED position (m).
@@ -13,15 +17,33 @@ function [lat, lon, alt] = NED2LLA(N, E, D, originLat, originLon, originAlt)
     % lat ... Latitude (rad) of converted position.
     % lon ... Longitude (rad) of converted position.
     % alt ... Altitude (m, positive upwards) of converted position.
-    % 
-    % REVISION HISTORY
-    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    % Version     Author                 Changes
-    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    % 20221028    Robert Damerius        Initial release.
-    % 20240528    Robert Damerius        Add support for multi-dimensional inputs (N, E, D).
-    % 
-    % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    assert(2 == nargin || 6 == nargin);
+    if(2 == nargin)
+        N = varargin{1}(1,:);
+        E = varargin{1}(2,:);
+        D = varargin{1}(3,:);
+        originLat = varargin{2}(1,:);
+        originLon = varargin{2}(2,:);
+        originAlt = varargin{2}(3,:);
+    elseif(6 == nargin)
+        N = varargin{1};
+        E = varargin{2};
+        D = varargin{3};
+        originLat = varargin{4};
+        originLon = varargin{5};
+        originAlt = varargin{6};
+    end
+    [lat, lon, alt] = NED2LLA_implementation(N, E, D, originLat, originLon, originAlt);
+    if(2 == nargin)
+        varargout{1} = [lat; lon; alt];
+    elseif(6 == nargin)
+        varargout{1} = lat;
+        varargout{2} = lon;
+        varargout{3} = alt;
+    end
+end
+
+function [lat, lon, alt] = NED2LLA_implementation(N, E, D, originLat, originLon, originAlt)
     assert(isequal(size(N),size(E)) && isequal(size(N),size(D)), 'Inputs N, E, D must have the same size!');
     assert(isscalar(originLat), 'Input originLat must be a scalar value!');
     assert(isscalar(originLon), 'Input originLon must be a scalar value!');
