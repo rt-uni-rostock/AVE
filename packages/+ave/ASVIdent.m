@@ -25,9 +25,14 @@ function [F, B] = ASVIdent(trials, initialF, initialB, maskIdentF, maskIdentB, w
     %                          corresponding coefficient stays fixed during the optimization.
     % maskIdentB           ... 3-by-3 matrix representing the entries of the B-matrix to be identified. A zero-value indicates that the
     %                          corresponding coefficient stays fixed during the optimization.
-    % weightUVR            ... (Optional) 3-by-1 vector representing the weighting for u, v and r. The default value is [1; 1; 1;].
+    % weightUVR            ... (Optional) 3-by-1 vector representing the weighting for u, v and r. The default value is [1; 1; 1].
     % plotComparison       ... (Optional) Boolean value that indicates whether to create a final comparison plot or not. The default value is TRUE.
     % simulateFreeResponse ... (Optional) Check the free-response function by doing a numerical simulation for different initial velocities and plot the resulting velocities. This parameter indicates the simulation time in seconds. The default value is -1.
+    % 
+    % 
+    % RETURN
+    % F ... 3-by-12 matrix representing the estimation result for coefficient matrix F.
+    % B ... 3-by-3 matrix representing the estimation result for coefficient matrix B.
     % 
     % 
     % GENERAL NOTES
