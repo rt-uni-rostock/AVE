@@ -5,13 +5,14 @@ p3 = [0; 1; 0];
 p4 = [0; 0; 1];
 referencePoints = [p1, p2, p3, p4];
 
-% noisy distance measurements to unknown target (here 5 measurements per reference point)
+% noisy distance measurements to unknown target (here 5 measurements per reference point, some of them missing)
 testPoint = [2;3;4];
-r1 = norm(testPoint - p1) * (1.0 + 0.001*randn(5,1));
-r2 = norm(testPoint - p2) * (1.0 + 0.001*randn(5,1));
-r3 = norm(testPoint - p3) * (1.0 + 0.001*randn(5,1));
-r4 = norm(testPoint - p4) * (1.0 + 0.001*randn(5,1));
+r1 = norm(testPoint - p1) + 0.001*randn(5,1);
+r2 = norm(testPoint - p2) + 0.001*randn(5,1);
+r3 = norm(testPoint - p3) + 0.001*randn(5,1);
+r4 = norm(testPoint - p4) + 0.001*randn(5,1);
 distances = [r1, r2, r3, r4];
+distances(rand(numel(distances),1) < 0.2) = NaN;
 
 % estimate
 targetPoint = ave.DistancesTo3DPoint(distances, referencePoints);

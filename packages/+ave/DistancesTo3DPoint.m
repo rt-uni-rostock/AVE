@@ -6,7 +6,8 @@ function targetPoint = DistancesTo3DPoint(distances, referencePoints)
     % reference points to the target point.
     % 
     % INPUT
-    % distances       ... N-by-M matrix of N distance measurements from all M reference points to the target point.
+    % distances       ... N-by-M matrix of N distance measurements from all M reference points to the target point. Missing
+    %                     distannce measurements may be indicated by NaN.
     % referencePoints ... 3-by-M matrix of M 3D points that span up an euclidean space. M must be at least 4, e.g. 3 points
     %                     making a triangle and the fourth point being outside the plane of that triangle.
     % 
@@ -21,17 +22,39 @@ function targetPoint = DistancesTo3DPoint(distances, referencePoints)
     end
     assert(size(distances,2) == size(referencePoints,2), 'Dimensions mismatch for distances and referencePoints!');
     N = size(distances, 1); % number of measurements
+    M = size(distances, 2); % number of reference points
+    assert(M > 3, 'There must be at least 4 reference points!');
+    A = nan((M-1)*N, 3);
+    b = nan((M-1)*N, 1);
 
-    % A matrix
-    p_diff_2 = 2.0 * (referencePoints(:,2:end) - referencePoints(:,1));
-    A = reshape(repmat(p_diff_2, [N,1]), 3, [])';
+    % go through all measurements
+    k = 1;
+    for n = 1:N
+        % sort distances to make nonfinite values appear at the end
+        d = distances(n,:);
+        [d,i] = sort(d);
+        p = referencePoints(:,i);
 
-    % b vector
-    distances_squared = distances .* distances;
-    pp = sum(referencePoints .* referencePoints, 1);
-    pp_diff = pp(2:end) - pp(1);
-    sd_diff = distances_squared(:,1) - distances_squared(:,2:end);
-    b = reshape(repmat(pp_diff, [N,1]), [], 1) + reshape(sd_diff, [], 1);
+        % A matrix
+        A(k:k+M-2,:) = 2.0 * (p(:,2:end) - p(:,1))';
+
+        % b vector
+        dd = d .* d;
+        pp = sum(p .* p, 1);
+        pp_diff = pp(2:end) - pp(1);
+        dd_diff = dd(:,1) - dd(:,2:end);
+        b(k:k+M-2) = pp_diff + dd_diff;
+
+        % update index
+        k = k + M - 1;
+    end
+
+    % remove all nonfinite measurements
+    i = ~isfinite(b);
+    if(any(i))
+        A(i,:) = [];
+        b(i) = [];
+    end
 
     % solve
     targetPoint = A \ b;
