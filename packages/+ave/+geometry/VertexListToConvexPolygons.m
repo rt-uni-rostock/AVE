@@ -44,8 +44,10 @@ function [pgon, ngon] = VertexListToConvexPolygons(vertices, maxNumPolygons, max
             i0 = i;
         elseif((i0 > 0) && (~finiteVertex || (i == N)))
             ie = (i + int32((i == N) && finiteVertex)) - int32(1);
-            ngon = ngon + int32(1);
-            pgon{ngon}.Create(vertices(:, i0:ie));
+            if(ngon < max_polygons)
+                ngon = ngon + int32(1);
+                pgon{ngon}.Create(vertices(:, i0:ie));
+            end
             i0 = int32(-1);
         end
     end
