@@ -1,4 +1,4 @@
-function SendStructAndBuildUnpacker(s, dstAddress, dstPort, signalName, outputDirectory)
+function SendStructAndBuildUnpacker(s, dstAddress, dstPort, signalName, outputDirectory, dataTypeLength)
     % This function is designed to send structured data in a uni-directional way from MATLAB to simulink, for example to update
     % online parameters for a running model or target application. It serializes a given structure, sends the binary to the
     % specified destination via UDP and generates a subsystem reference model as well as a simulink data dictionary for
@@ -12,6 +12,7 @@ function SendStructAndBuildUnpacker(s, dstAddress, dstPort, signalName, outputDi
     % signalName      ... The name to be used for file and data generation (see below).
     % outputDirectory ... The output directory where to store generated files. If this parameter is not given, then the current
     %                     working directory is used.
+    % dataTypeLength  ... The data type to be used for length inputs and outputs. The default value is 'int32'.
     % 
     % NOTES
     % The files and variable names being generated are based on the signalName input. This input is converted to a valid MATLAB
@@ -29,6 +30,7 @@ function SendStructAndBuildUnpacker(s, dstAddress, dstPort, signalName, outputDi
         dstPort (1,1) uint16
         signalName
         outputDirectory = pwd()
+        dataTypeLength = 'int32'
     end
     assert(isstruct(s), 'Input "s" must be a struct!');
     signalName = matlab.lang.makeValidName(char(signalName));
@@ -59,7 +61,7 @@ function SendStructAndBuildUnpacker(s, dstAddress, dstPort, signalName, outputDi
     if(generateModel)
         fprintf('[AVE] Create subsystem reference model "%s"\n', fileNameModel);
         mUnpackBus = NewModel(modelNameUnpack, fileNameModel);
-        GenerateUnpackModel(modelNameUnpack, dataStoreName, dataDictName, structInfo);
+        GenerateUnpackModel(modelNameUnpack, dataStoreName, dataDictName, structInfo, dataTypeLength);
         SaveModel(mUnpackBus, fileNameModel);
     end
     fprintf('[AVE] Done\n\n');
@@ -177,7 +179,7 @@ function strElements = MakeDataStoreElements(structInfo, dataStoreName)
     strElements = strjoin(cellElements, '#');
 end
 
-function GenerateUnpackModel(modelName, dataStoreName, dataDictName, structInfo)
+function GenerateUnpackModel(modelName, dataStoreName, dataDictName, structInfo, dataTypeLength)
     numBytes = GetNumberOfBytes(structInfo);
     strDimensions = ['{' strjoin(cellfun(@(x)(mat2str(x.Dimensions)),structInfo,'UniformOutput',false),',') '}'];
     strDataTypes = ['{''' strjoin(cellfun(@(x)(x.DataType),structInfo,'UniformOutput',false),''',''') '''}'];
@@ -189,9 +191,9 @@ function GenerateUnpackModel(modelName, dataStoreName, dataDictName, structInfo)
     % blocks at root level
     subSysName = [modelName '/unpack'];
     h_inbytes = add_block('simulink/Sources/In1', [modelName '/bytes'], 'OutDataTypeStr', 'uint8', 'Position', [0 113 30 127]);
-    h_inlength = add_block('simulink/Sources/In1', [modelName '/length'], 'OutDataTypeStr', 'uint32', 'PortDimensions', '1', 'Position', [0 13 30 27]);
+    h_inlength = add_block('simulink/Sources/In1', [modelName '/length'], 'OutDataTypeStr', dataTypeLength, 'PortDimensions', '1', 'Position', [0 13 30 27]);
     h_compare = add_block('simulink/Logic and Bit Operations/Compare To Constant', [modelName '/CompareToConstant'], 'ShowName', 'off', 'relop', '==', 'const', num2str(numBytes), 'Position', [85 10 175 30]);
-    h_width = add_block('simulink/Signal Attributes/Width', [modelName '/Width'], 'ShowName', 'off', 'DataType', 'uint32', 'Position', [85 55 115 85]);
+    h_width = add_block('simulink/Signal Attributes/Width', [modelName '/Width'], 'ShowName', 'off', 'DataType', dataTypeLength, 'Position', [85 55 115 85]);
     h_relop = add_block('simulink/Logic and Bit Operations/Relational Operator', [modelName '/RelationalOperator'], 'ShowName', 'off', 'relop', '<=', 'Position', [150 32 175 83]);
     h_and = add_block('simulink/Logic and Bit Operations/Logical Operator', [modelName '/AND'], 'ShowName', 'off', 'Inputs', '2', 'Position', [245 1 270 79]);
     h_outsuccess = add_block('simulink/Sinks/Out1', [modelName '/success'], 'OutDataTypeStr', 'boolean', 'PortDimensions', '1', 'Position', [475 33 505 47]);
